@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Validate a course pack's manifest, checksums, lecture coverage, links and math delimiters.
 
-Python 3.9+ standard library only. This checks structure, not mathematical correctness,
+Python 3.10+ standard library only. This checks structure, not mathematical correctness,
 external URL reachability, every Markdown dialect, or actual renderer output.
 """
 from __future__ import annotations
