@@ -43,7 +43,7 @@ class CoursePackTests(unittest.TestCase):
     def test_valid_pack_and_shared_material(self):
         self.rows.append(dict(self.rows[0], lecture="Lecture-02"))
         (self.root / "notes" / "Lecture-02_Second.md").write_text("# Second\n", encoding="utf-8")
-        self.rows.append(dict(self.rows[0], lecture="Lecture-03", status="unavailable", target_path=""))
+        self.rows.append(dict(self.rows[0], lecture="Lecture-01", status="unavailable", target_path=""))
         self.write_manifest()
         self.assertEqual(verify(self.root, 2), [])
 
