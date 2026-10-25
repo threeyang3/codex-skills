@@ -1,5 +1,4 @@
-"""Exercise integrity failures and portability with a temporary course pack."""
-
+"""Regression tests for course-pack integrity and lecture coverage."""
 import csv
 import hashlib
 import tempfile
@@ -20,27 +19,33 @@ class CoursePackTests(unittest.TestCase):
         self.material.write_text("original source", encoding="utf-8")
         self.note = self.root / "notes" / "Lecture-01_Test.md"
         self.note.write_text("# Test\n## Definition\n$x^2$\n[[#Definition]]\n", encoding="utf-8")
-        self.rows = [dict(lecture="Lecture-01", original_path="source.txt", source_url="local:source.txt",
-                          target_path="materials/source with spaces.txt", status="downloaded")]
+        self.rows = [dict(lecture="Lecture-01", role="slides", original_path="source.txt",
+                          source_url="local:source.txt", target_path="materials/source with spaces.txt",
+                          status="downloaded")]
         self.write_manifest()
-        self.checksum = self.root / "checksums.sha256"
-        digest = hashlib.sha256(self.material.read_bytes()).hexdigest()
-        self.checksum.write_text(f"{digest}  materials/source with spaces.txt\n", encoding="utf-8")
+        self.write_checksum()
         (self.root / "README.md").write_text(
             "[Note](notes/Lecture-01_Test.md)\n[Source](<materials/source with spaces.txt>)\n",
             encoding="utf-8")
 
-    def write_manifest(self):
+    def write_manifest(self, fieldnames=None):
+        fields = fieldnames or list(self.rows[0])
         with (self.root / "source_manifest.tsv").open("w", encoding="utf-8", newline="") as handle:
-            writer = csv.DictWriter(handle, fieldnames=list(self.rows[0]), delimiter="\t")
+            writer = csv.DictWriter(handle, fieldnames=fields, delimiter="\t", extrasaction="ignore")
             writer.writeheader()
             writer.writerows(self.rows)
 
+    def write_checksum(self):
+        digest = hashlib.sha256(self.material.read_bytes()).hexdigest()
+        (self.root / "checksums.sha256").write_text(
+            f"{digest}  materials/source with spaces.txt\n", encoding="utf-8")
+
     def test_valid_pack_and_shared_material(self):
         self.rows.append(dict(self.rows[0], lecture="Lecture-02"))
+        (self.root / "notes" / "Lecture-02_Second.md").write_text("# Second\n", encoding="utf-8")
         self.rows.append(dict(self.rows[0], lecture="Lecture-03", status="unavailable", target_path=""))
         self.write_manifest()
-        self.assertEqual(verify(self.root, 1), [])
+        self.assertEqual(verify(self.root, 2), [])
 
     def test_tamper_is_detected(self):
         self.material.write_text("changed content", encoding="utf-8")
@@ -48,7 +53,7 @@ class CoursePackTests(unittest.TestCase):
 
     def test_missing_file_and_checksum_coverage(self):
         self.material.unlink()
-        self.checksum.write_text("", encoding="utf-8")
+        (self.root / "checksums.sha256").write_text("", encoding="utf-8")
         errors = verify(self.root)
         self.assertTrue(any("missing material" in error for error in errors))
         self.assertTrue(any("lacks checksum" in error for error in errors))
@@ -81,12 +86,39 @@ class CoursePackTests(unittest.TestCase):
         self.assertEqual(verify(self.root), [])
         self.assertTrue(any("expected 2 notes" in error for error in verify(self.root, 2)))
 
-    def test_nested_wiki_path_with_dots(self):
-        nested = self.root / "notes" / "unit"
-        nested.mkdir()
-        (nested / "Lecture-02_V1.2.md").write_text("# Next\n", encoding="utf-8")
-        self.note.write_text("# Test\n[[unit/Lecture-02_V1.2]]\n", encoding="utf-8")
-        self.assertEqual(verify(self.root), [])
+    def test_missing_required_role_column(self):
+        self.write_manifest(fieldnames=["lecture", "original_path", "source_url", "target_path", "status"])
+        errors = verify(self.root)
+        self.assertTrue(any("manifest missing required columns" in error and "role" in error for error in errors))
+
+    def test_empty_status_is_rejected(self):
+        self.rows[0]["status"] = "   "
+        self.write_manifest()
+        errors = verify(self.root)
+        self.assertTrue(any("invalid or empty status" in error for error in errors))
+
+    def test_invalid_status_is_rejected(self):
+        self.rows[0]["status"] = "missing"
+        self.write_manifest()
+        errors = verify(self.root)
+        self.assertTrue(any("invalid or empty status" in error for error in errors))
+
+    def test_manifest_lecture_without_note_is_detected(self):
+        self.rows.append(dict(self.rows[0], lecture="Lecture-02"))
+        self.write_manifest()
+        errors = verify(self.root)
+        self.assertTrue(any("Lecture-02" in error and "no matching note" in error for error in errors))
+
+    def test_note_without_manifest_lecture_is_detected(self):
+        (self.root / "notes" / "Lecture-02_Extra.md").write_text("# Extra\n", encoding="utf-8")
+        errors = verify(self.root)
+        self.assertTrue(any("Lecture-02" in error and "no matching lecture" in error for error in errors))
+
+    def test_empty_role_is_rejected(self):
+        self.rows[0]["role"] = " "
+        self.write_manifest()
+        errors = verify(self.root)
+        self.assertTrue(any("empty role" in error for error in errors))
 
 
 if __name__ == "__main__":

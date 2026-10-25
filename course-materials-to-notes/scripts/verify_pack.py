@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""Check a course pack's manifest, hashes, local links and math delimiters.
+"""Validate a course pack's manifest, checksums, lecture coverage, links and math delimiters.
 
-Python 3.9+ standard library only; no download, mutation or mathematical proof.
-Markdown link parsing covers ordinary inline links, not every Markdown dialect.
+Python 3.9+ standard library only. This checks structure, not mathematical correctness,
+external URL reachability, every Markdown dialect, or actual renderer output.
 """
-
 from __future__ import annotations
 
 import argparse
@@ -15,8 +14,13 @@ from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
 
+REQUIRED_COLUMNS = {"lecture", "role", "original_path", "source_url", "target_path", "status"}
+VALID_STATUSES = {"downloaded", "unavailable"}
+LECTURE_PREFIX = re.compile(r"^(Lecture-\d+)(?:_|\b)", re.IGNORECASE)
+
+
 def prose(text: str) -> str:
-    """Mask fenced and inline code while preserving source line numbers."""
+    """Mask fenced and inline code so code examples do not count as prose math/links."""
     lines = []
     fence = None
     for line in text.splitlines():
@@ -35,7 +39,8 @@ def prose(text: str) -> str:
 
 def verify(root: Path, expected_notes: int | None = None) -> list[str]:
     root = root.resolve()
-    errors = []
+    errors: list[str] = []
+    manifest_lectures: set[str] = set()
 
     def local_path(raw: str) -> Path:
         candidate = (root / raw).resolve()
@@ -43,43 +48,55 @@ def verify(root: Path, expected_notes: int | None = None) -> list[str]:
             raise ValueError(f"path escapes course pack: {raw}")
         return candidate
 
-    resources = set()
-    unavailable = 0
+    resources: set[Path] = set()
     manifest = root / "source_manifest.tsv"
     try:
         with manifest.open(encoding="utf-8-sig", newline="") as handle:
             reader = csv.DictReader(handle, delimiter="\t")
-            required = {"lecture", "original_path", "source_url", "target_path"}
-            if not required.issubset(reader.fieldnames or []):
-                errors.append(f"manifest missing columns: {sorted(required - set(reader.fieldnames or []))}")
+            columns = set(reader.fieldnames or [])
+            missing_columns = REQUIRED_COLUMNS - columns
+            if missing_columns:
+                errors.append(f"manifest missing required columns: {sorted(missing_columns)}")
+            if not {"lecture", "original_path", "source_url", "target_path", "status"}.issubset(columns):
+                # The header is invalid; avoid interpreting malformed rows with fallback defaults.
+                rows = []
             else:
-                for number, row in enumerate(reader, 2):
-                    status = (row.get("status") or "downloaded").strip()
-                    if not row.get("lecture") or not row.get("source_url") or not row.get("original_path"):
-                        errors.append(f"manifest line {number}: missing lecture or source provenance")
-                    if status == "unavailable":
-                        unavailable += 1
-                        continue
-                    if status != "downloaded":
-                        errors.append(f"manifest line {number}: invalid status {status}")
-                        continue
-                    raw = row.get("target_path") or ""
-                    if not raw:
-                        errors.append(f"manifest line {number}: empty target_path")
-                        continue
-                    try:
-                        target = local_path(raw)
-                        resources.add(target)
-                        if not target.is_file():
-                            errors.append(f"missing material: {raw}")
-                    except ValueError as exc:
-                        errors.append(str(exc))
+                rows = list(reader)
+            for number, row in enumerate(rows, 2):
+                lecture = (row.get("lecture") or "").strip()
+                role = (row.get("role") or "").strip()
+                source_url = (row.get("source_url") or "").strip()
+                original_path = (row.get("original_path") or "").strip()
+                status = (row.get("status") or "").strip()
+                if not lecture or not source_url or not original_path:
+                    errors.append(f"manifest line {number}: missing lecture or source provenance")
+                if not role:
+                    errors.append(f"manifest line {number}: empty role")
+                if lecture:
+                    manifest_lectures.add(lecture)
+                if status not in VALID_STATUSES:
+                    errors.append(f"manifest line {number}: invalid or empty status {status!r}")
+                    continue
+                if status == "unavailable":
+                    continue
+                raw = (row.get("target_path") or "").strip()
+                if not raw:
+                    errors.append(f"manifest line {number}: empty target_path")
+                    continue
+                try:
+                    target = local_path(raw)
+                    resources.add(target)
+                    if not target.is_file():
+                        errors.append(f"missing material: {raw}")
+                except ValueError as exc:
+                    errors.append(str(exc))
     except (OSError, UnicodeError, csv.Error) as exc:
         errors.append(f"cannot read manifest: {exc}")
 
-    checksums = {}
+    checksums: dict[Path, str] = {}
     try:
-        for number, line in enumerate((root / "checksums.sha256").read_text(encoding="utf-8").splitlines(), 1):
+        checksum_lines = (root / "checksums.sha256").read_text(encoding="utf-8").splitlines()
+        for number, line in enumerate(checksum_lines, 1):
             if not line.strip():
                 continue
             match = re.fullmatch(r"([a-fA-F0-9]{64}) [ *](.+)", line)
@@ -97,26 +114,41 @@ def verify(root: Path, expected_notes: int | None = None) -> list[str]:
             if not target.is_file():
                 errors.append(f"checksum file missing: {match[2]}")
             else:
+                hasher = hashlib.sha256()
                 with target.open("rb") as handle:
-                    hasher = hashlib.sha256()
                     for chunk in iter(lambda: handle.read(1024 * 1024), b""):
                         hasher.update(chunk)
-                    digest = hasher.hexdigest()
-                if digest != match[1].lower():
+                if hasher.hexdigest() != match[1].lower():
                     errors.append(f"checksum mismatch: {match[2]}")
     except (OSError, UnicodeError) as exc:
         errors.append(f"cannot verify checksums: {exc}")
+
     for path in sorted(resources - checksums.keys()):
         errors.append(f"manifest target lacks checksum: {path.relative_to(root)}")
     for path in sorted(checksums.keys() - resources):
         errors.append(f"checksum target absent from manifest: {path.relative_to(root)}")
 
     notes_dir = root / "notes"
-    notes = sorted(notes_dir.rglob("Lecture-*.md"))
+    notes = sorted(notes_dir.rglob("Lecture-*.md")) if notes_dir.exists() else []
     if not notes:
         errors.append("no notes/Lecture-*.md files found")
     if expected_notes is not None and len(notes) != expected_notes:
         errors.append(f"expected {expected_notes} notes, found {len(notes)}")
+
+    note_lectures: set[str] = set()
+    for note in notes:
+        match = LECTURE_PREFIX.match(note.name)
+        if match:
+            note_lectures.add(match.group(1))
+        else:
+            errors.append(f"note filename does not begin with a lecture identifier: {note.relative_to(root)}")
+    normalized_manifest = {value.lower() for value in manifest_lectures}
+    normalized_notes = {value.lower() for value in note_lectures}
+    for lecture in sorted(normalized_manifest - normalized_notes):
+        errors.append(f"lecture in manifest has no matching note: {lecture}")
+    for lecture in sorted(normalized_notes - normalized_manifest):
+        errors.append(f"note has no matching lecture in manifest: {lecture}")
+
     markdown = sorted(set(root.glob("*.md")) | set(notes_dir.rglob("*.md")))
     bodies = {path: prose(path.read_text(encoding="utf-8")) for path in markdown}
     for path, body in bodies.items():
@@ -139,7 +171,8 @@ def verify(root: Path, expected_notes: int | None = None) -> list[str]:
                 if anchor not in titles:
                     errors.append(f"{label}: missing wiki heading {destination}")
 
-        for raw in re.findall(r"\[[^\]\n]*\]\(\s*(<[^>]+>|[^\s)]+)(?:\s+\"[^\"]*\")?\s*\)", body):
+        link_pattern = r"\[[^\]\n]*\]\(\s*(<[^>]+>|[^\s)]+)(?:\s+\"[^\"]*\")?\s*\)"
+        for raw in re.findall(link_pattern, body):
             target = raw.strip("<>")
             parsed = urlsplit(target)
             if parsed.scheme or parsed.netloc or not parsed.path:
@@ -166,20 +199,20 @@ def verify(root: Path, expected_notes: int | None = None) -> list[str]:
         if display_open:
             errors.append(f"{label}: unbalanced display math")
 
-    print(f"Checked {len(notes)} lecture notes, {len(resources)} unique materials; {unavailable} unavailable source rows")
+    print(f"Checked {len(notes)} lecture notes, {len(resources)} unique materials; {len(manifest_lectures)} manifest lecture IDs")
     return errors
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("root", type=Path, help="course pack root")
-    parser.add_argument("--expected-notes", type=int, help="optional count derived from this course")
+    parser.add_argument("--expected-notes", type=int, help="optional note count derived from this course")
     args = parser.parse_args()
     errors = verify(args.root, args.expected_notes)
     for error in errors:
         print(f"ERROR: {error}")
     if not errors:
-        print("OK: manifest, SHA-256, local links and math delimiters")
+        print("OK: manifest, SHA-256, lecture coverage, local links and math delimiters")
     return bool(errors)
 
 
