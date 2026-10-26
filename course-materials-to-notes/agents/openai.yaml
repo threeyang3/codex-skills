@@ -1,4 +1,4 @@
 interface:
   display_name: "课程资料与学习笔记"
-  short_description: "整理课程课件、生成分讲学习笔记、核验数学与引用，并同步 GitHub 和处理审查意见"
-  default_prompt: "使用 $course-materials-to-notes 整理这门课的资料，生成循序渐进的 Markdown 笔记；如我要求上传或提供审查报告，请继续完成对应环节。"
+  short_description: "整理整门课程资料、生成逐讲笔记或审校既有笔记"
+  default_prompt: "使用 $course-materials-to-notes 整理整门课程资料并生成循序渐进的 Markdown 学习笔记；若我提供审查报告，请核对当前版本并逐项修订。只有我明确要求时才进行教材原文重建或同步 GitHub。"
