@@ -159,10 +159,6 @@ def verify(root: Path, expected_notes: int | None = None,
         if unexpected_notes:
             errors.append(f"unexpected lecture notes: {sorted(unexpected_notes)}")
     if expected_lectures is None:
-        available_lectures = {
-            lecture for lecture in manifest_lectures
-            if any((row_status := status) == "downloaded" for status in [])
-        }
         # Without an externally supplied scope, at least ensure every lecture with
         # a downloaded manifest row has a corresponding note; unavailable-only
         # lectures may legitimately have no note yet.
