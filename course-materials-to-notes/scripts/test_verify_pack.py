@@ -41,8 +41,8 @@ class CoursePackTests(unittest.TestCase):
         return verify(self.root, expected_notes, expected_lectures)
 
     def test_valid_pack_shared_material_and_unavailable_row(self):
-        self.rows.append(dict(self.rows[0], lecture="Lecture-02"))
-        self.rows.append(dict(self.rows[0], lecture="Lecture-03", status="unavailable", target_path=""))
+        self.rows.append(dict(self.rows[0]))  # Same material referenced by another manifest row.
+        self.rows.append(dict(self.rows[0], status="unavailable", target_path=""))
         self.write_manifest()
         self.assertEqual(self.errors(1, {"Lecture-01"}), [])
 
