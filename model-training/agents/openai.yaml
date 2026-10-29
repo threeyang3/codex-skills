@@ -1,0 +1,5 @@
+interface:
+  display_name: "Model Training"
+  short_description: "Train on HPC with official defaults and auto-recovery"
+  default_prompt: "Use $model-training to train this model with official defaults and durable automatic recovery."
+
