@@ -1,0 +1,4 @@
+interface:
+  display_name: "Project Closeout"
+  short_description: "Reconcile code, docs, agent rules, runtime, and workspace state"
+  default_prompt: "Use $project-closeout to reconcile this project's code, runtime behavior, README/docs, AGENTS.md or active agent rules, and workspace residue, then report verified, pending, and cleanup-candidate items without destructive cleanup unless explicitly authorized."

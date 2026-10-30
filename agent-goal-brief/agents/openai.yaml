@@ -1,0 +1,4 @@
+interface:
+  display_name: "Agent Goal Brief"
+  short_description: "Turn a clear objective into a safe autonomous execution brief"
+  default_prompt: "Use $agent-goal-brief to convert this defined objective into a concise autonomous-agent brief with verified baselines, write boundaries, anti-cheating acceptance criteria, stop conditions, and handoff rules."
