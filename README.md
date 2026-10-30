@@ -1,6 +1,6 @@
 # 个人 Codex Skills
 
-维护七个面向不同工作流的 Codex skill，包含指令、参考资料、模板及验证脚本。
+维护九个面向不同工作流的 Codex skill，包含指令、参考资料、模板及验证脚本。
 
 | Skill | 适用任务 | 不应仅因以下需求而启动 |
 | --- | --- | --- |
@@ -9,16 +9,23 @@
 | [hpc-agent](hpc-agent/SKILL.md) | 通过共享 HPC Agent 提交、跟踪和恢复远程 GPU/HPC 任务 | 用户明确要求本地执行的任务 |
 | [model-training](model-training/SKILL.md) | 在 HPC 上按官方训练配置准备、校验和执行模型训练，遵守 checkpoint 恢复约束 | 只做推理、评估、基准测试或普通数据处理 |
 | [product-discovery-interview](product-discovery-interview/SKILL.md) | 新产品、大功能或需求不完整的重构；通过分轮提问补齐用户、流程、边界、异常和验收标准 | 已有明确复现步骤和验收标准的小修复、机械性改动 |
+| [agent-goal-brief](agent-goal-brief/SKILL.md) | 把已经明确的产品/工程目标转成可交给长程 Agent 独立执行的任务书，包含基线、写入边界、防作弊验收、止损与断点续跑 | 产品目标仍未收敛，或当前会话能快速完成的小修复 |
 | [product-documentation](product-documentation/SKILL.md) | README、用户指南、快速开始、功能说明和发布文档；规划示例、镜头清单并核对文档与当前产品一致 | 单个代码注释、内部随手笔记，或尚未收敛的产品需求 |
 | [product-demo-visuals](product-demo-visuals/SKILL.md) | 为真实运行的软件制作、筛选、裁切并验收高质量演示截图和视觉素材 | 只为证明程序运行的调试截图，或尚未实现功能的概念图 |
+| [project-closeout](project-closeout/SKILL.md) | 开发/发布结束后，对齐代码、运行态、README/docs、AGENTS.md/规则和工作区残留，形成唯一现役答案 | 普通编码任务，或未经确认的破坏性清理 |
 
 ## 推荐的产品开发链路
 
 对需求尚不完整的新产品或大功能，可以按需串联：
 
-`product-discovery-interview` → 实现与验证 → `product-documentation` → `product-demo-visuals`
+`product-discovery-interview` → `agent-goal-brief` → 实现与验证 → `product-documentation` / `product-demo-visuals` → `project-closeout`
 
-其中 `product-documentation` 负责决定文档面向谁、应讲什么以及需要哪些镜头；`product-demo-visuals` 负责把这些镜头实际拍好并进行视觉质量验收。小型、边界清楚的修改不应机械执行整条链路。
+- `product-discovery-interview` 决定做什么、为什么做，并关闭高风险未知项。
+- `agent-goal-brief` 在目标已经明确后，把任务写成适合长程 Agent 的可验证执行合同，防止错误捷径和假验收。
+- `product-documentation` 负责决定文档面向谁、应讲什么以及需要哪些镜头；`product-demo-visuals` 负责把这些镜头实际拍好并进行视觉质量验收。
+- `project-closeout` 负责开发结束后的知识治理：让代码、运行态、README/docs、AGENTS.md 和工作区状态重新一致。
+
+小型、边界清楚的修改不应机械执行整条链路。
 
 ## 目录
 
@@ -45,11 +52,19 @@
 ├── product-discovery-interview/
 │   ├── SKILL.md
 │   └── agents/openai.yaml
+├── agent-goal-brief/
+│   ├── SKILL.md
+│   ├── UPSTREAM.md
+│   └── agents/openai.yaml
 ├── product-documentation/
 │   ├── SKILL.md
 │   └── agents/openai.yaml
-└── product-demo-visuals/
+├── product-demo-visuals/
+│   ├── SKILL.md
+│   └── agents/openai.yaml
+└── project-closeout/
     ├── SKILL.md
+    ├── UPSTREAM.md
     └── agents/openai.yaml
 ```
 
@@ -57,11 +72,13 @@
 
 克隆仓库后，将需要的 skill 完整目录复制到 `${CODEX_HOME:-$HOME/.codex}/skills/`。安装前检查目标是否已有同名目录；如有本地修改，先备份或比较差异，不要直接覆盖。课程 skill 依赖相邻模板、参考文件与脚本，不要只复制 `SKILL.md`。
 
-在支持 skills 的 Codex 会话中，可以使用 `$course-materials-to-notes`、`$homework-delivery`、`$hpc-agent`、`$model-training`、`$product-discovery-interview`、`$product-documentation` 或 `$product-demo-visuals` 指定调用。调用时仍应提供任务材料和交付要求。
+在支持 skills 的 Codex 会话中，可以使用 `$course-materials-to-notes`、`$homework-delivery`、`$hpc-agent`、`$model-training`、`$product-discovery-interview`、`$agent-goal-brief`、`$product-documentation`、`$product-demo-visuals` 或 `$project-closeout` 指定调用。调用时仍应提供任务材料和交付要求。
 
 HPC 相关的 `hpc-agent` 和 `model-training` 依赖已配置的 SSH 别名 `h100-15` 及远端 `~/hpc-agent/bin/hpc-agent`。本仓库只保存 skill 指令、界面元数据及配套参考文档，不包含远端程序、SSH 配置、任务数据库或凭据。
 
 这两个 Skill 的**上游源仓库**为 [threeyang3/hpc-agent](https://github.com/threeyang3/hpc-agent) 的 `skills/` 目录。当前 `hpc-agent` 已与上游一致，本次同步补齐 `model-training`（含 `references/`）；此处为独立副本，后续上游更新需要再次同步，不能假设自动同步。
+
+`agent-goal-brief` 与 `project-closeout` 分别改编自 [KKKKhazix/khazix-skills](https://github.com/KKKKhazix/khazix-skills) 的 `leader` 与 `neat-freak`。上游为 MIT License；各 Skill 目录中的 `UPSTREAM.md` 保留了来源、审阅 commit 和完整许可声明。本仓库没有原样复制上游全部平台特定逻辑或 eval fixtures，而是按当前 Codex 工作流做了收敛适配。
 
 **能力限制：** `model-training` 中描述的无人值守 checkpoint 自动恢复尚未由远端 CLI 完整实现；实际恢复需经验证 checkpoint 后人工显式执行，不得把 Skill 指令视为已经部署的自动恢复服务。
 
