@@ -66,7 +66,7 @@ description: Build or maintain a course-specific learning-note pack from supplie
 先做结构验证，再做内容验证，最后检查实际阅读体验。
 
 - 将 [verify_pack.py](scripts/verify_pack.py) 复制到交付目录的 `tools/`，从交付根目录运行 `python3 tools/verify_pack.py .`。脚本检查清单字段/状态、文件存在性、SHA-256、笔记讲次覆盖、部分本地链接及公式定界符；它不检查外链连通性、不解析所有 Markdown 方言，也不能证明数学正确。
-- 清单中的 `lecture` 标识必须能与笔记文件名对应，例如 `Lecture-01` 对应 `Lecture-01_Topic.md`。若来源讲次没有对应笔记，需补齐或在交付说明中解释，并调整清单设计而非伪造通过。
+- 清单中的 `lecture` 标识必须能与笔记文件名对应，例如 `Lecture-01` 对应 `Lecture-01_Topic.md`。按课程盘点提供 `--expected-lectures Lecture-01,Lecture-02` 和可选的 `--expected-notes N`，显式检查清单与笔记覆盖。未提供课程范围时，至少检查已下载资料对应的讲次是否有笔记；仅含 `unavailable` 记录的讲次可暂缺笔记。`unavailable` 行的 `target_path` 必须为空，缺件原因另行记录，不得伪造文件或调整清单掩盖缺漏。
 - 内容检查定义、定理条件、维度、误差量、步长、随机性、算法更新顺序和来源对应关系。只对实际出现的高风险结论增加数值测试；参考 authoring-review 中适用的检查项。
 - 在目标阅读器中抽查代表性的复杂公式、矩阵、表格和链接。无法实际查看的部分如实说明；不能将定界符检查称为渲染通过。
 - 在 skill 根目录运行 `python3 -m unittest discover -s scripts -p 'test_*.py'`，检查清单字段、缺件、哈希、链接、公式定界符和课程讲次覆盖。

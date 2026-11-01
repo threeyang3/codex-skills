@@ -1,0 +1,4 @@
+interface:
+  display_name: "Product Discovery Interview"
+  short_description: "Clarify incomplete product ideas before implementation"
+  default_prompt: "Use $product-discovery-interview to clarify this product idea, surface missing decisions, and define a development-ready scope before coding."

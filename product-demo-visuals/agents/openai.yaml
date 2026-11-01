@@ -1,0 +1,4 @@
+interface:
+  display_name: "Product Demo Visuals"
+  short_description: "Capture and quality-check polished product screenshots"
+  default_prompt: "Use $product-demo-visuals to capture intentional product screenshots, select the best candidates, and visually verify them before documentation delivery."

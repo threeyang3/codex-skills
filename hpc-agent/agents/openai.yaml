@@ -1,0 +1,4 @@
+interface:
+  display_name: "HPC Agent"
+  short_description: "Route and track model workloads on h100-15 safely"
+  default_prompt: "Use $hpc-agent to run and track this model task on h100-15."

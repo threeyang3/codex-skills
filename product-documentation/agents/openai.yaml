@@ -1,0 +1,4 @@
+interface:
+  display_name: "Product Documentation"
+  short_description: "Plan and validate polished product-facing documentation"
+  default_prompt: "Use $product-documentation to structure this product documentation, plan examples and screenshots, and verify it against the current product."
