@@ -1,6 +1,6 @@
 # 个人 Codex Skills
 
-维护九个面向不同工作流的 Codex skill，包含指令、参考资料、模板及验证脚本。
+维护十二个面向不同工作流的 Codex skill，包含指令、参考资料、模板及验证脚本。
 
 | Skill | 适用任务 | 不应仅因以下需求而启动 |
 | --- | --- | --- |
@@ -13,6 +13,9 @@
 | [product-documentation](product-documentation/SKILL.md) | README、用户指南、快速开始、功能说明和发布文档；规划示例、镜头清单并核对文档与当前产品一致 | 单个代码注释、内部随手笔记，或尚未收敛的产品需求 |
 | [product-demo-visuals](product-demo-visuals/SKILL.md) | 为真实运行的软件制作、筛选、裁切并验收高质量演示截图和视觉素材 | 只为证明程序运行的调试截图，或尚未实现功能的概念图 |
 | [project-closeout](project-closeout/SKILL.md) | 开发/发布结束后，对齐产品合同、代码、运行态、README/docs、截图、AGENTS.md/规则和工作区残留，形成唯一现役答案 | 普通编码任务，或未经确认的破坏性清理 |
+| [manga-organize](manga-organize/SKILL.md) | 整理指定漫画文件，制作 CBZ、标注书目与章节并验收，可按要求归档百度网盘 | 只需管理漫笺中的现有条目 |
+| [manjian-library](manjian-library/SKILL.md) | 查找和整理漫笺书库，或从百度网盘登记漫画 | 只需转换、打包或标注漫画文件 |
+| [mediabase-maintenance](mediabase-maintenance/SKILL.md) | 维护 Obsidian MediaBase 文娱库与 Media Core 插件，核对归档、迁移和界面 | 其他 Obsidian 库或无关插件 |
 
 ## 推荐的产品开发链路
 
@@ -74,17 +77,28 @@
 ├── product-demo-visuals/
 │   ├── SKILL.md
 │   └── agents/openai.yaml
-└── project-closeout/
+├── project-closeout/
+│   ├── SKILL.md
+│   ├── UPSTREAM.md
+│   └── agents/openai.yaml
+├── manga-organize/
+│   ├── SKILL.md
+│   ├── agents/openai.yaml
+│   ├── references/
+│   └── scripts/
+├── manjian-library/
+│   └── SKILL.md
+└── mediabase-maintenance/
     ├── SKILL.md
-    ├── UPSTREAM.md
-    └── agents/openai.yaml
+    ├── agents/openai.yaml
+    └── references/
 ```
 
 ## 安装与使用
 
 克隆仓库后，将需要的 skill 完整目录复制到 `${CODEX_HOME:-$HOME/.codex}/skills/`。安装前检查目标是否已有同名目录；如有本地修改，先备份或比较差异，不要直接覆盖。课程 skill 依赖相邻模板、参考文件与脚本，不要只复制 `SKILL.md`。
 
-在支持 skills 的 Codex 会话中，可以使用 `$course-materials-to-notes`、`$homework-delivery`、`$hpc-agent`、`$model-training`、`$product-discovery-interview`、`$agent-goal-brief`、`$product-documentation`、`$product-demo-visuals` 或 `$project-closeout` 指定调用。调用时仍应提供任务材料和交付要求。
+在支持 skills 的 Codex 会话中，输入 `$` 加上表中的 skill 名称即可指定调用，例如 `$manga-organize`。调用时提供任务材料和交付要求。
 
 HPC 相关的 `hpc-agent` 和 `model-training` 依赖已配置的 SSH 别名 `h100-15` 及远端 `~/hpc-agent/bin/hpc-agent`。本仓库只保存 skill 指令、界面元数据及配套参考文档，不包含远端程序、SSH 配置、任务数据库或凭据。
 

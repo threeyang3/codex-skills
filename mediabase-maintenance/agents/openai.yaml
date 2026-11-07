@@ -1,0 +1,4 @@
+interface:
+  display_name: "MediaBase 仓库维护"
+  short_description: "整理 MediaBase 作品系列与笔记，核对来源并验收插件"
+  default_prompt: "使用 $mediabase-maintenance 核对并完成这次 MediaBase 维护。"
