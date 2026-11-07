@@ -94,13 +94,16 @@
     └── references/
 ```
 
-## 安装与使用
+## 用 CC Switch 安装和更新
 
-克隆仓库后，将需要的 skill 完整目录复制到 `${CODEX_HOME:-$HOME/.codex}/skills/`。安装前检查目标是否已有同名目录；如有本地修改，先备份或比较差异，不要直接覆盖。课程 skill 依赖相邻模板、参考文件与脚本，不要只复制 `SKILL.md`。
+1. 在 CC Switch 的 **Skills → 仓库管理** 添加并启用 `threeyang3/codex-skills`，分支填 `main`，目录留空，从仓库根目录发现 skill。
+2. 安装新 skill 时，打开 **Skills → 发现**，点击 **刷新仓库**，搜索 skill 名称。在 **安装到** 选择 **Codex**，再点击 **安装**。
+3. 更新已安装的 skill 时，在 **Skills** 中选择 **检查更新**，选中要更新的条目并确认。若预期的更新未出现，先确认改动已进入 GitHub 的 `main`，再核对安装来源。
+4. 在 **已安装** 中确认条目的来源为 `threeyang3/codex-skills`，且 **Codex** 已启用。若同名条目显示为「本地导入」，先把需要保留的改动合入仓库，再卸载该条目并从 **发现** 页安装仓库版本。
 
 在支持 skills 的 Codex 会话中，输入 `$` 加上表中的 skill 名称即可指定调用，例如 `$manga-organize`。调用时提供任务材料和交付要求。
 
-HPC 相关的 `hpc-agent` 和 `model-training` 依赖已配置的 SSH 别名 `h100-15` 及远端 `~/hpc-agent/bin/hpc-agent`。本仓库只保存 skill 指令、界面元数据及配套参考文档，不包含远端程序、SSH 配置、任务数据库或凭据。
+HPC 相关的 `hpc-agent` 和 `model-training` 需要可用的 SSH 连接和已部署的远端 HPC Agent CLI。具体前提见对应的 `SKILL.md`。
 
 这两个 Skill 的**上游源仓库**为 [threeyang3/hpc-agent](https://github.com/threeyang3/hpc-agent) 的 `skills/` 目录。当前 `hpc-agent` 已与上游一致，本次同步补齐 `model-training`（含 `references/`）；此处为独立副本，后续上游更新需要再次同步，不能假设自动同步。
 
@@ -108,9 +111,33 @@ HPC 相关的 `hpc-agent` 和 `model-training` 依赖已配置的 SSH 别名 `h1
 
 **能力限制：** `model-training` 中描述的无人值守 checkpoint 自动恢复尚未由远端 CLI 完整实现；实际恢复需经验证 checkpoint 后人工显式执行，不得把 Skill 指令视为已经部署的自动恢复服务。
 
-## 维护与测试
+## 发布新建或修改的 Skill
 
-仓库是本机 skills 的独立副本，不会自动与安装目录同步。修改后应核对两处差异并通过 Git 记录版本。
+GitHub 的 `main` 是 CC Switch 的更新来源。在仓库工作副本中编辑和提交，发布后通过 CC Switch 同步到 Codex。CC Switch 更新会用仓库内容替换安装副本，请先把要保留的修改合入 Git。
+
+1. 有仓库写权限时，先进入 `codex-skills` 工作副本，检查并处理未提交的改动，再同步 `main`。首次贡献可先克隆仓库。
+
+   ```sh
+   git status --short --branch
+   git switch main
+   git pull --ff-only origin main
+   ```
+
+2. 新建 skill 时，在仓库根目录添加同名目录，放入 `SKILL.md` 和所需的脚本、模板或参考资料，并在 README 中登记。修改已有 skill 时，编辑对应目录。
+3. 提交前核对 `SKILL.md` 的 `name`、`description`、相对链接和配套文件，运行相关本地检查。只暂存本次要公开的文件，确认差异中没有凭据、个人信息或私有资料。
+4. 提交并推送到 `main`。以下以修改 `manga-organize` 为例，如果同时修改了 README，也将其暂存。
+
+   ```sh
+   git add -- manga-organize/
+   git diff --cached --check
+   git diff --cached
+   git commit -m "Update manga-organize skill"
+   git push origin main
+   ```
+
+   使用 PR 时，合并到 `main` 后再按上面的步骤安装或检查更新。
+
+## 测试
 
 课程资料验证器使用 Python 3.9+ 标准库。运行单元测试：
 
